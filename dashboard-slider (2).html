@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Slider</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0c10;
+  --surface: #111318;
+  --surface2: #181c24;
+  --border: rgba(255,255,255,0.08);
+  --accent: #3b82f6;
+  --accent2: #10b981;
+  --text: #f0f2f5;
+  --muted: #6b7280;
+  --danger: #ef4444;
+  --speed: 450ms;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+
+/* ── HEADER ── */
+#hdr{
+  position:fixed;top:0;left:0;right:0;height:52px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;gap:12px;
+  background:rgba(10,12,16,.93);backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--border);z-index:50;
+}
+.hdr-l{display:flex;align-items:center;gap:12px;overflow:hidden;min-width:0}
+#hdr-logo{height:38px;width:auto;max-width:150px;object-fit:contain;display:none;filter:drop-shadow(0 0 8px rgba(59,130,246,.35))}
+#hdr-app{height:28px;width:auto;max-width:110px;object-fit:contain;display:none}
+#hdr-title{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr-r{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.ctr{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:600;color:var(--muted);white-space:nowrap}
+.ctr b{color:var(--accent)}
+.hbtn{
+  background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  border-radius:7px;padding:5px 13px;font-size:.76rem;font-family:'Syne',sans-serif;
+  font-weight:600;cursor:pointer;transition:background .18s,border-color .18s;white-space:nowrap
+}
+.hbtn:hover{background:var(--surface);border-color:var(--accent)}
+.hbtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* ── STAGE ── */
+#stage{position:fixed;top:52px;left:0;right:0;bottom:0;overflow:hidden}
+
+/* ── SLIDES ── */
+.slide{
+  position:absolute;inset:0;
+  opacity:0;pointer-events:none;
+  transition:opacity var(--speed) cubic-bezier(.4,0,.2,1),
+             transform var(--speed) cubic-bezier(.4,0,.2,1);
+}
+.slide.active{opacity:1;pointer-events:all}
+body.anim-fade  .slide{transform:none}
+body.anim-slide .slide{transform:translateX(60px)}
+body.anim-slide .slide.active{transform:translateX(0)}
+body.anim-zoom  .slide{transform:scale(1.05)}
+body.anim-zoom  .slide.active{transform:scale(1)}
+body.anim-flip  .slide{transform:rotateY(8deg) scale(.97);transform-origin:left center}
+body.anim-flip  .slide.active{transform:rotateY(0) scale(1)}
+
+.slide-bg{position:absolute;inset:0;z-index:0;background:var(--bg)}
+
+/* iframe */
+.slide iframe{
+  position:absolute;inset:0;z-index:1;
+  width:100%;height:100%;border:none;display:block;
+}
+
+/* ── LOADING ── */
+.ld{
+  display:none;position:absolute;inset:0;z-index:2;
+  flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  background:rgba(10,12,16,.97);pointer-events:none;
+}
+.ld.show{display:flex}
+.spin{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ld-lbl{font-size:.8rem;color:var(--muted)}
+
+/* ── BLOCKED / FILE:// WARNING ── */
+.blocked{
+  display:none;position:absolute;inset:0;z-index:3;
+  flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;padding:32px;text-align:center;background:rgba(10,12,16,.98);
+}
+.blocked.show{display:flex}
+.bl-icon{font-size:2.6rem;line-height:1}
+.bl-title{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700}
+.bl-sub{font-size:.82rem;color:var(--muted);max-width:480px;line-height:1.65}
+.bl-url{
+  font-size:.72rem;color:var(--accent);word-break:break-all;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:8px 14px;max-width:540px;font-family:monospace;
+}
+.bl-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.bl-btn{
+  background:var(--accent);border:none;color:#fff;
+  border-radius:9px;padding:9px 20px;font-size:.83rem;
+  font-family:'Syne',sans-serif;font-weight:700;cursor:pointer;
+  text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+  transition:opacity .18s;
+}
+.bl-btn:hover{opacity:.84}
+.bl-btn.sec{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
+.bl-btn.sec:hover{border-color:var(--accent)}
+
+/* info/fix boxes */
+.info-box{
+  background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.18);
+  border-radius:9px;padding:12px 16px;font-size:.76rem;
+  color:#93c5fd;line-height:1.65;max-width:520px;text-align:left;
+}
+.info-box strong{color:var(--text)}
+.info-box code{
+  background:rgba(0,0,0,.4);padding:2px 6px;border-radius:4px;
+  font-size:.7rem;font-family:monospace;color:#6ee7b7;
+}
+.warn-box{
+  background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);
+  border-radius:9px;padding:12px 16px;font-size:.76rem;
+  color:#fcd34d;line-height:1.65;max-width:520px;text-align:left;
+}
+.warn-box strong{color:var(--text)}
+.warn-box code{background:rgba(0,0,0,.4);padding:2px 6px;border-radius:4px;font-size:.7rem;font-family:monospace;color:#fde68a}
+
+/* file:// banner at top of page */
+#file-banner{
+  display:none;
+  position:fixed;top:52px;left:0;right:0;z-index:100;
+  background:rgba(245,158,11,.12);border-bottom:1px solid rgba(245,158,11,.3);
+  padding:8px 20px;font-size:.78rem;color:#fcd34d;
+  align-items:center;gap:10px;flex-wrap:wrap;
+}
+#file-banner.show{display:flex}
+#file-banner strong{color:#fff}
+#file-banner a{color:var(--accent2);font-weight:600;text-decoration:underline;cursor:pointer}
+#file-banner .dismiss{margin-left:auto;cursor:pointer;opacity:.6;font-size:1rem}
+#file-banner .dismiss:hover{opacity:1}
+
+/* ── PROGRESS ── */
+#pw{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.05);z-index:20}
+#pb{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0;box-shadow:0 0 8px var(--accent)}
+
+/* ── DOTS ── */
+#dots{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:7px;z-index:20}
+.dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2);cursor:pointer;transition:background .25s,transform .25s}
+.dot.on{background:var(--accent);transform:scale(1.45)}
+
+/* ── ARROWS ── */
+.arr{
+  position:absolute;top:50%;transform:translateY(-50%);
+  background:rgba(10,12,16,.65);border:1px solid var(--border);color:var(--text);
+  width:40px;height:40px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;z-index:20;font-size:1rem;
+  transition:background .18s,border-color .18s;backdrop-filter:blur(8px);
+}
+.arr:hover{background:var(--accent);border-color:var(--accent)}
+#ap{left:12px}#an{right:12px}
+
+/* ── SETTINGS PANEL ── */
+#panel{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);overflow-y:auto}
+#panel.open{display:flex;align-items:flex-start;justify-content:center;padding:28px 14px}
+.pbox{background:var(--surface);border:1px solid var(--border);border-radius:18px;width:100%;max-width:800px;padding:28px;box-shadow:0 28px 72px rgba(0,0,0,.65);animation:pIn .28s ease}
+@keyframes pIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.ptitle{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800}
+.xb{background:var(--surface2);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.9rem;transition:background .18s}
+.xb:hover{background:var(--danger);border-color:var(--danger)}
+.sec{margin-bottom:22px}
+.slbl{font-family:'Syne',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.slbl::after{content:'';flex:1;height:1px;background:var(--border)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:540px){.g2{grid-template-columns:1fr}}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg.full{grid-column:1/-1}
+.fg label{font-size:.76rem;font-weight:500;color:var(--muted)}
+input[type=text],input[type=url],select{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 11px;font-size:.83rem;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .18s;width:100%}
+input[type=text]:focus,input[type=url]:focus,select:focus{border-color:var(--accent)}
+input[type=color]{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:3px 7px;height:36px;cursor:pointer;width:100%}
+input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
+.cr{display:flex;align-items:center;gap:8px}
+.cr input[type=color]{width:42px;flex-shrink:0}
+.cr input[type=text]{flex:1}
+.rr{display:flex;align-items:center;gap:10px}
+.rr input{flex:1}
+.rv{font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;color:var(--accent);min-width:44px;text-align:right}
+.tr{display:flex;align-items:center;justify-content:space-between}
+.tog{position:relative;width:38px;height:22px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0}
+.ts{position:absolute;inset:0;background:var(--surface2);border:1px solid var(--border);border-radius:22px;cursor:pointer;transition:background .18s}
+.ts::before{content:'';position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:var(--muted);border-radius:50%;transition:transform .18s,background .18s}
+.tog input:checked+.ts{background:var(--accent);border-color:var(--accent)}
+.tog input:checked+.ts::before{transform:translateX(16px);background:#fff}
+.upb{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px dashed rgba(59,130,246,.35);border-radius:7px;padding:9px 12px;cursor:pointer;font-size:.82rem;color:var(--muted);transition:border-color .18s,color .18s;width:100%}
+.upb:hover{border-color:var(--accent);color:var(--text)}
+.upb input{display:none}
+.upb img{width:38px;height:26px;object-fit:contain;border-radius:3px;display:none}
+.slist{display:flex;flex-direction:column;gap:10px}
+.si{background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:14px}
+.si-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.si-n{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;color:var(--muted)}
+.si-a{display:flex;gap:5px}
+.ib{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.82rem;transition:background .15s,color .15s,border-color .15s}
+.ib:hover{background:var(--surface);color:var(--text);border-color:var(--muted)}
+.ib.del:hover{background:var(--danger);border-color:var(--danger);color:#fff}
+.ib.mv:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.sf{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:540px){.sf{grid-template-columns:1fr}}
+.ubadge{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:.69rem;font-family:'Syne',sans-serif;font-weight:700;padding:3px 8px;border-radius:20px}
+.ubadge.mb{background:rgba(16,185,129,.1);color:#6ee7b7;border:1px solid rgba(16,185,129,.25)}
+.ubadge.ok{background:rgba(59,130,246,.1);color:#93c5fd;border:1px solid rgba(59,130,246,.2)}
+.ubadge.bad{background:rgba(245,158,11,.08);color:#fcd34d;border:1px solid rgba(245,158,11,.2)}
+.url-hint{font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.5}
+.url-hint code{background:rgba(0,0,0,.3);padding:1px 5px;border-radius:3px;font-size:.69rem;color:#93c5fd}
+.add-btn{background:transparent;border:1px dashed rgba(16,185,129,.35);color:var(--accent2);border-radius:9px;padding:10px;font-size:.83rem;font-family:'Syne',sans-serif;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .18s,border-color .18s;width:100%}
+.add-btn:hover{background:rgba(16,185,129,.06);border-color:var(--accent2)}
+.save-btn{background:linear-gradient(135deg,var(--accent),#2563eb);border:none;color:#fff;border-radius:9px;padding:12px 24px;font-size:.88rem;font-family:'Syne',sans-serif;font-weight:700;cursor:pointer;width:100%;margin-top:6px;letter-spacing:.03em;transition:opacity .18s}
+.save-btn:hover{opacity:.86}
+</style>
+</head>
+<body class="anim-fade">
+
+<!-- FILE:// WARNING BANNER -->
+<div id="file-banner">
+  <span>⚠ <strong>Fichier local détecté.</strong> Les iframes cross-origin sont bloquées par le navigateur depuis <code>file://</code>. 
+  Hébergez ce fichier sur un serveur web pour que les dashboards s'affichent.
+  <a id="hosting-hint-link" onclick="showHostingHelp()">Comment faire ?</a></span>
+  <span class="dismiss" onclick="this.parentElement.classList.remove('show')">✕</span>
+</div>
+
+<!-- HEADER -->
+<div id="hdr">
+  <div class="hdr-l">
+    <img id="hdr-logo" alt="Logo">
+    <img id="hdr-app"  alt="App">
+    <span id="hdr-title">Dashboard Logistique &amp; Export</span>
+  </div>
+  <div class="hdr-r">
+    <span class="ctr">Écran <b id="cn">1</b> / <b id="ct">1</b></span>
+    <button class="hbtn" id="btn-pause">⏸ Pause</button>
+    <button class="hbtn on" id="btn-cfg">⚙ Paramètres</button>
+  </div>
+</div>
+
+<!-- STAGE -->
+<div id="stage">
+  <div id="pw"><div id="pb"></div></div>
+  <div id="dots"></div>
+  <button class="arr" id="ap">&#8592;</button>
+  <button class="arr" id="an">&#8594;</button>
+</div>
+
+<!-- HOSTING HELP MODAL -->
+<div id="hosting-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:24px">
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;max-width:600px;width:100%;padding:28px;animation:pIn .25s ease">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <span style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800">🌐 Héberger le slider</span>
+    <button class="xb" onclick="closeHostingHelp()">✕</button>
+  </div>
+  <p style="font-size:.83rem;color:var(--muted);margin-bottom:16px;line-height:1.6">
+    Les iframes cross-origin sont bloquées depuis <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:3px;font-size:.75rem">file://</code> par tous les navigateurs modernes.
+    Il suffit de servir ce fichier HTML depuis n'importe quel hôte HTTP/HTTPS.
+  </p>
+  <div style="display:flex;flex-direction:column;gap:10px">
+
+    <div class="info-box">
+      <strong>Option 1 — GitHub Pages (gratuit, permanent)</strong><br><br>
+      1. Créez un repo GitHub (public ou privé)<br>
+      2. Uploadez <code>dashboard-slider.html</code> → renommez en <code>index.html</code><br>
+      3. Repo Settings → Pages → Branch: main → Save<br>
+      4. Votre URL : <code>https://votrecompte.github.io/votre-repo/</code>
+    </div>
+
+    <div class="info-box">
+      <strong>Option 2 — Netlify Drop (gratuit, 30 secondes)</strong><br><br>
+      1. Allez sur <code>netlify.com/drop</code><br>
+      2. Glissez-déposez ce fichier HTML<br>
+      3. Netlify vous donne une URL HTTPS instantanément
+    </div>
+
+    <div class="info-box">
+      <strong>Option 3 — Serveur local (test rapide)</strong><br><br>
+      Dans le dossier contenant le fichier HTML, lancez :<br>
+      <code>python3 -m http.server 8080</code><br>
+      Puis ouvrez <code>http://localhost:8080/dashboard-slider.html</code>
+    </div>
+
+    <div class="warn-box">
+      <strong>Pourquoi cette restriction ?</strong><br>
+      Depuis <code>file://</code>, l'origine est <em>null</em>. Les navigateurs bloquent les requêtes
+      vers des domaines externes (comme votre Metabase Railway) pour des raisons de sécurité.
+      Une fois sur HTTP/HTTPS, les iframes Metabase <code>/public/dashboard/…</code>
+      se chargent normalement car Metabase retire le header <code>X-Frame-Options</code>
+      sur ses routes publiques.
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div id="panel">
+<div class="pbox">
+  <div class="ph">
+    <span class="ptitle">⚙ Paramètres du Slider</span>
+    <button class="xb" id="btn-close">✕</button>
+  </div>
+
+  <div class="sec">
+    <div class="slbl">Identité Visuelle</div>
+    <div class="g2">
+      <div class="fg"><label>Titre de l'en-tête</label>
+        <input type="text" id="c-title" value="Dashboard Logistique &amp; Export">
+      </div>
+      <div class="fg"><label>Logo principal (HD)</label>
+        <label class="upb"><input type="file" id="up-logo" accept="image/*"><img id="prev-logo"><span id="lbl-logo">📁 Choisir logo HD</span></label>
+      </div>
+      <div class="fg"><label>Logo application</label>
+        <label class="upb"><input type="file" id="up-app" accept="image/*"><img id="prev-app"><span id="lbl-app">📁 Choisir logo app</span></label>
+      </div>
+      <div class="fg"><label>Couleur accent</label>
+        <div class="cr"><input type="color" id="c-acc" value="#3b82f6"><input type="text" id="c-acc-t" value="#3b82f6"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="slbl">Arrière-plan</div>
+    <div class="g2">
+      <div class="fg"><label>Fond</label>
+        <div class="cr"><input type="color" id="c-bg" value="#0a0c10"><input type="text" id="c-bg-t" value="#0a0c10"></div>
+      </div>
+      <div class="fg"><label>Surface</label>
+        <div class="cr"><input type="color" id="c-su" value="#111318"><input type="text" id="c-su-t" value="#111318"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="slbl">Animation &amp; Timing</div>
+    <div class="g2">
+      <div class="fg"><label>Délai par écran</label>
+        <div class="rr"><input type="range" id="c-del" min="3" max="120" value="10"><span class="rv" id="c-del-v">10s</span></div>
+      </div>
+      <div class="fg"><label>Durée transition</label>
+        <div class="rr"><input type="range" id="c-spd" min="200" max="1500" value="450" step="50"><span class="rv" id="c-spd-v">450ms</span></div>
+      </div>
+      <div class="fg"><label>Animation</label>
+        <select id="c-anim">
+          <option value="fade">Fondu (Fade)</option>
+          <option value="slide">Glissement (Slide)</option>
+          <option value="zoom">Zoom</option>
+          <option value="flip">Flip 3D</option>
+        </select>
+      </div>
+      <div class="fg"><label>Lecture automatique</label>
+        <div class="tr">
+          <span style="font-size:.8rem;color:var(--muted)">Avancement automatique</span>
+          <label class="tog"><input type="checkbox" id="c-auto" checked><span class="ts"></span></label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="slbl">Écrans / Dashboards</div>
+    <div class="slist" id="slist"></div>
+    <br>
+    <button class="add-btn" id="btn-add">+ Ajouter un écran</button>
+  </div>
+
+  <button class="save-btn" id="btn-save">✓ Appliquer les paramètres</button>
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// ── Detect file:// origin ──────────────────────────────────────────────────
+const IS_FILE = location.protocol === 'file:';
+
+// ── URL processor ─────────────────────────────────────────────────────────
+function processUrl(raw) {
+  raw = (raw || '').trim();
+  if (!raw || raw === 'https://') return { embed: '', type: 'empty' };
+  try {
+    const u = new URL(raw);
+    const p = u.pathname;
+    const isMbPub   = p.includes('/public/dashboard/') || p.includes('/public/question/');
+    const isMbEmbed = p.includes('/embed/dashboard/')  || p.includes('/embed/question/');
+    if (isMbPub || isMbEmbed) {
+      // Clean hash params for appearance
+      const hp = new URLSearchParams((u.hash || '').replace(/^#/, ''));
+      if (!hp.has('bordered')) hp.set('bordered', 'false');
+      if (!hp.has('titled'))   hp.set('titled',   'false');
+      u.hash = hp.toString();
+      return { embed: u.toString(), type: 'mb', display: raw };
+    }
+    return { embed: raw, type: 'generic', display: raw };
+  } catch (e) { return { embed: raw, type: 'bad', display: raw }; }
+}
+
+function urlBadge(type) {
+  const m = {
+    mb:      ['mb',  '✓ Lien public Metabase'],
+    generic: ['ok',  '🔗 URL externe'],
+    empty:   ['bad', '⚠ URL vide'],
+    bad:     ['bad', '⚠ URL invalide'],
+  };
+  const [c, l] = m[type] || ['ok', type];
+  return `<span class="ubadge ${c}">${l}</span>`;
+}
+
+// ── Config ────────────────────────────────────────────────────────────────
+const DEF = [
+  { title: 'Dashboard Logistique', url: 'https://metabase-production-8536.up.railway.app/public/dashboard/617d5208-71a3-49eb-b5d6-535fe218d7ba', bg: '#0a0c10' },
+  { title: 'Dashboard 2',          url: 'https://', bg: '#0a0c10' },
+  { title: 'Dashboard 3',          url: 'https://', bg: '#0a0c10' },
+  { title: 'Dashboard 4',          url: 'https://', bg: '#0a0c10' },
+];
+let cfg;
+try { cfg = JSON.parse(localStorage.getItem('dslider_v6')) || null; } catch (e) { cfg = null; }
+if (!cfg) cfg = {
+  title: 'Dashboard Logistique & Export',
+  delay: 10, speed: 450, anim: 'fade', auto: true,
+  accent: '#3b82f6', bg: '#0a0c10', surface: '#111318',
+  logo: null, appLogo: null,
+  slides: DEF.map(s => ({ ...s }))
+};
+
+let cur = 0, timer = null, paused = false;
+
+// ── Theme / Branding ──────────────────────────────────────────────────────
+function applyTheme() {
+  const r = document.documentElement.style;
+  r.setProperty('--accent',  cfg.accent);
+  r.setProperty('--bg',      cfg.bg);
+  r.setProperty('--surface', cfg.surface);
+  r.setProperty('--speed',   cfg.speed + 'ms');
+  document.body.className = 'anim-' + cfg.anim;
+}
+function applyBranding() {
+  $('hdr-title').textContent = cfg.title;
+  const lo = $('hdr-logo'); if (cfg.logo)    { lo.src = cfg.logo;    lo.style.display = 'block'; } else lo.style.display = 'none';
+  const al = $('hdr-app');  if (cfg.appLogo) { al.src = cfg.appLogo; al.style.display = 'block'; } else al.style.display = 'none';
+}
+
+// ── Render slides ─────────────────────────────────────────────────────────
+function renderSlides() {
+  const stage = $('stage');
+  stage.querySelectorAll('.slide').forEach(el => el.remove());
+
+  // Adjust stage top if file banner is visible
+  stage.style.top = IS_FILE ? '84px' : '52px';
+
+  cfg.slides.forEach((s, i) => {
+    const proc = processUrl(s.url);
+    const div  = document.createElement('div');
+    div.className = 'slide' + (i === cur ? ' active' : '');
+
+    if (IS_FILE && proc.embed) {
+      // file:// mode — can't iframe, show direct-open card instead
+      div.innerHTML = `
+        <div class="slide-bg" style="background:${s.bg || cfg.bg}"></div>
+        <div class="blocked show" id="bl-${i}">
+          <div class="bl-icon">🖥</div>
+          <div class="bl-title">${esc(s.title)}</div>
+          <div class="bl-sub">
+            Ce fichier est ouvert depuis votre disque dur (<code style="background:rgba(0,0,0,.3);padding:1px 4px;border-radius:3px;font-size:.75rem">file://</code>).<br>
+            Les iframes sont bloquées par le navigateur depuis une origine locale.<br>
+            <strong>Hébergez ce fichier sur un serveur web</strong> pour afficher les dashboards.
+          </div>
+          <div class="bl-url">${esc(proc.display || s.url)}</div>
+          <div class="bl-actions">
+            <a class="bl-btn" href="${esc(proc.embed)}" target="_blank" rel="noopener">↗ Ouvrir le dashboard</a>
+            <button class="bl-btn sec" onclick="showHostingHelp()">🌐 Comment héberger ?</button>
+          </div>
+        </div>`;
+    } else {
+      div.innerHTML = `
+        <div class="slide-bg" style="background:${s.bg || cfg.bg}"></div>
+        <iframe
+          id="ifr-${i}"
+          src="${esc(proc.embed)}"
+          allowfullscreen allow="fullscreen"
+          referrerpolicy="no-referrer-when-downgrade"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation allow-downloads"
+          loading="${i === cur ? 'eager' : 'lazy'}"
+        ></iframe>
+        <div class="ld show" id="ld-${i}">
+          <div class="spin"></div>
+          <span class="ld-lbl">Chargement du dashboard…</span>
+        </div>
+        <div class="blocked" id="bl-${i}">
+          <div class="bl-icon">🔒</div>
+          <div class="bl-title">${esc(s.title)}</div>
+          <div class="bl-sub">
+            L'iframe n'a pas pu se charger. Vérifiez que <strong>Public Sharing</strong>
+            est activé dans Metabase et que le lien est un lien public valide.
+          </div>
+          <div class="bl-url">${esc(proc.display || s.url)}</div>
+          <div class="bl-actions">
+            <a class="bl-btn" href="${esc(proc.embed)}" target="_blank" rel="noopener">↗ Ouvrir dans un onglet</a>
+            <button class="bl-btn sec" onclick="retrySlide(${i})">↻ Réessayer</button>
+          </div>
+          <div class="info-box" style="margin-top:0">
+            <strong>Si le lien s'ouvre mais pas l'iframe :</strong><br>
+            Dans Metabase → <strong>Admin → Settings → Public Sharing</strong> → activez le toggle,
+            puis vérifiez que votre lien est bien au format <code>/public/dashboard/[UUID]</code>.
+          </div>
+        </div>`;
+      attachIframeEvents(i);
+    }
+
+    stage.insertBefore(div, $('pw'));
+  });
+
+  renderDots();
+  updateCtr();
+}
+
+function attachIframeEvents(i) {
+  const ifr = $(`ifr-${i}`), ld = $(`ld-${i}`), bl = $(`bl-${i}`);
+  if (!ifr) return;
+
+  // Cross-origin iframes (e.g. Metabase on another domain) load successfully
+  // but browsers block the 'load' event from firing reliably.
+  // Solution: dismiss the spinner after a short grace period regardless.
+  // If truly blocked/failed, the error handler or the 20s fallback catches it.
+  const graceDismiss = setTimeout(() => { ld?.classList.remove('show'); }, 3500);
+
+  // Hard timeout — if still loading after 20s, show blocked overlay
+  const hardTimeout = setTimeout(() => { ld?.classList.remove('show'); bl?.classList.add('show'); }, 20000);
+
+  ifr.addEventListener('load', () => {
+    clearTimeout(graceDismiss);
+    clearTimeout(hardTimeout);
+    ld?.classList.remove('show');
+    try {
+      const doc = ifr.contentDocument || ifr.contentWindow?.document;
+      if (doc && doc.title && (doc.title.includes('blocked') || doc.title.includes('Refused'))) {
+        bl?.classList.add('show');
+      }
+    } catch (e) { /* cross-origin loaded fine — SecurityError is expected */ }
+  });
+  ifr.addEventListener('error', () => { clearTimeout(graceDismiss); clearTimeout(hardTimeout); ld?.classList.remove('show'); bl?.classList.add('show'); });
+}
+
+window.retrySlide = function(i) {
+  const ifr = $(`ifr-${i}`), ld = $(`ld-${i}`), bl = $(`bl-${i}`);
+  if (!ifr) return;
+  bl.classList.remove('show'); ld.classList.add('show');
+  const src = ifr.src; ifr.src = '';
+  setTimeout(() => { ifr.src = src; attachIframeEvents(i); }, 200);
+};
+
+function renderDots() {
+  const nav = $('dots'); nav.innerHTML = '';
+  cfg.slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === cur ? ' on' : '');
+    d.addEventListener('click', () => goTo(i));
+    nav.appendChild(d);
+  });
+}
+function updateCtr() { $('cn').textContent = cur + 1; $('ct').textContent = cfg.slides.length; }
+
+// ── Navigation ────────────────────────────────────────────────────────────
+function goTo(idx) {
+  document.querySelectorAll('.slide')[cur]?.classList.remove('active');
+  document.querySelectorAll('.dot')[cur]?.classList.remove('on');
+  cur = ((idx % cfg.slides.length) + cfg.slides.length) % cfg.slides.length;
+  document.querySelectorAll('.slide')[cur]?.classList.add('active');
+  document.querySelectorAll('.dot')[cur]?.classList.add('on');
+  updateCtr(); resetProgress();
+}
+const goNext = () => goTo(cur + 1);
+const goPrev = () => goTo(cur - 1);
+
+// ── Progress ──────────────────────────────────────────────────────────────
+function resetProgress() {
+  const b = $('pb'); b.style.transition = 'none'; b.style.width = '0%';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (!paused && cfg.auto) { b.style.transition = `width ${cfg.delay}s linear`; b.style.width = '100%'; }
+  }));
+}
+function startAuto() {
+  clearInterval(timer); if (!cfg.auto || paused) return;
+  resetProgress(); timer = setInterval(() => { if (!paused) goNext(); }, cfg.delay * 1000);
+}
+function stopAuto() { clearInterval(timer); $('pb').style.transition = 'none'; }
+
+// ── Settings ──────────────────────────────────────────────────────────────
+function openSettings()  { stopAuto(); $('panel').classList.add('open'); populateForm(); }
+function closeSettings() { $('panel').classList.remove('open'); if (cfg.auto && !paused) startAuto(); }
+
+function populateForm() {
+  $('c-title').value = cfg.title;
+  $('c-del').value = cfg.delay;   $('c-del-v').textContent = cfg.delay + 's';
+  $('c-spd').value = cfg.speed;   $('c-spd-v').textContent = cfg.speed + 'ms';
+  $('c-anim').value = cfg.anim;   $('c-auto').checked = cfg.auto;
+  $('c-acc').value = cfg.accent;  $('c-acc-t').value = cfg.accent;
+  $('c-bg').value  = cfg.bg;      $('c-bg-t').value  = cfg.bg;
+  $('c-su').value  = cfg.surface; $('c-su-t').value  = cfg.surface;
+  if (cfg.logo)    { $('prev-logo').src = cfg.logo;    $('prev-logo').style.display = 'inline'; $('lbl-logo').textContent = '✓ Logo chargé'; }
+  if (cfg.appLogo) { $('prev-app').src  = cfg.appLogo; $('prev-app').style.display  = 'inline'; $('lbl-app').textContent  = '✓ Logo chargé'; }
+  renderSList();
+}
+
+function renderSList() {
+  const list = $('slist'); list.innerHTML = '';
+  cfg.slides.forEach((s, i) => {
+    const proc = processUrl(s.url);
+    const item = document.createElement('div'); item.className = 'si';
+    item.innerHTML = `
+      <div class="si-h">
+        <span class="si-n">Écran ${i + 1}</span>
+        <div class="si-a">
+          <button class="ib mv up" data-i="${i}">↑</button>
+          <button class="ib mv dn" data-i="${i}">↓</button>
+          <button class="ib del"   data-i="${i}">✕</button>
+        </div>
+      </div>
+      <div class="sf">
+        <div class="fg"><label>Nom</label><input type="text" class="s-nm" data-i="${i}" value="${esc(s.title)}"></div>
+        <div class="fg"><label>Fond</label>
+          <div class="cr"><input type="color" class="s-bg" data-i="${i}" value="${s.bg||cfg.bg}"><input type="text" class="s-bg-t" data-i="${i}" value="${s.bg||cfg.bg}"></div>
+        </div>
+        <div class="fg full">
+          <label>URL (lien public Metabase)</label>
+          <input type="url" class="s-url" data-i="${i}" value="${esc(s.url)}" placeholder="https://…/public/dashboard/UUID">
+          ${urlBadge(proc.type)}
+          <span class="url-hint">Depuis Metabase → icône Partage → <em>Create public link</em> → copiez l'URL<br>Format attendu : <code>/public/dashboard/[UUID]</code></span>
+        </div>
+      </div>`;
+    list.appendChild(item);
+  });
+
+  list.querySelectorAll('.ib.del').forEach(b => b.addEventListener('click', e => {
+    const i = +e.currentTarget.dataset.i; if (cfg.slides.length > 1) { cfg.slides.splice(i, 1); renderSList(); }
+  }));
+  list.querySelectorAll('.ib.up').forEach(b => b.addEventListener('click', e => {
+    const i = +e.currentTarget.dataset.i; if (i > 0) { [cfg.slides[i-1],cfg.slides[i]]=[cfg.slides[i],cfg.slides[i-1]]; renderSList(); }
+  }));
+  list.querySelectorAll('.ib.dn').forEach(b => b.addEventListener('click', e => {
+    const i = +e.currentTarget.dataset.i; if (i < cfg.slides.length-1) { [cfg.slides[i+1],cfg.slides[i]]=[cfg.slides[i],cfg.slides[i+1]]; renderSList(); }
+  }));
+  list.querySelectorAll('.s-nm').forEach(inp => inp.addEventListener('input', e => { cfg.slides[+e.target.dataset.i].title = e.target.value; }));
+  list.querySelectorAll('.s-url').forEach(inp => inp.addEventListener('input', e => {
+    const i = +e.target.dataset.i; cfg.slides[i].url = e.target.value;
+    const proc = processUrl(e.target.value);
+    const badge = inp.nextElementSibling;
+    if (badge?.classList.contains('ubadge')) badge.outerHTML = urlBadge(proc.type);
+  }));
+  list.querySelectorAll('.s-bg').forEach(inp => inp.addEventListener('input', e => {
+    const i = +e.target.dataset.i; cfg.slides[i].bg = e.target.value;
+    list.querySelector(`.s-bg-t[data-i="${i}"]`).value = e.target.value;
+  }));
+  list.querySelectorAll('.s-bg-t').forEach(inp => inp.addEventListener('input', e => {
+    const i = +e.target.dataset.i;
+    if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) { cfg.slides[i].bg = e.target.value; list.querySelector(`.s-bg[data-i="${i}"]`).value = e.target.value; }
+  }));
+}
+
+function collectSettings() {
+  cfg.title   = $('c-title').value;
+  cfg.delay   = +$('c-del').value; cfg.speed = +$('c-spd').value;
+  cfg.anim    = $('c-anim').value; cfg.auto  = $('c-auto').checked;
+  cfg.accent  = $('c-acc').value;  cfg.bg    = $('c-bg').value; cfg.surface = $('c-su').value;
+}
+
+function setupUpload(inpId, prevId, lblId, key) {
+  $(inpId).addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => { cfg[key] = ev.target.result; $(prevId).src = ev.target.result; $(prevId).style.display = 'inline'; $(lblId).textContent = '✓ ' + f.name.slice(0, 22); };
+    r.readAsDataURL(f);
+  });
+}
+function syncCol(cid, tid) {
+  $(cid).addEventListener('input', e => { $(tid).value = e.target.value; });
+  $(tid).addEventListener('input', e => { if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) $(cid).value = e.target.value; });
+}
+
+// ── Hosting help modal ────────────────────────────────────────────────────
+window.showHostingHelp = function() {
+  const m = $('hosting-modal'); m.style.display = 'flex';
+};
+window.closeHostingHelp = function() {
+  $('hosting-modal').style.display = 'none';
+};
+$('hosting-modal').addEventListener('click', e => { if (e.target === $('hosting-modal')) closeHostingHelp(); });
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+function init() {
+  // Show file:// warning banner
+  if (IS_FILE) $('file-banner').classList.add('show');
+
+  applyTheme(); applyBranding(); renderSlides();
+  if (cfg.auto) startAuto();
+
+  $('btn-cfg').addEventListener('click', openSettings);
+  $('btn-close').addEventListener('click', closeSettings);
+  $('btn-pause').addEventListener('click', () => {
+    paused = !paused; const b = $('btn-pause');
+    if (paused) { stopAuto(); b.textContent = '▶ Reprendre'; b.classList.add('on'); }
+    else { b.textContent = '⏸ Pause'; b.classList.remove('on'); startAuto(); }
+  });
+  $('ap').addEventListener('click', goPrev);
+  $('an').addEventListener('click', goNext);
+  $('c-del').addEventListener('input', e => $('c-del-v').textContent = e.target.value + 's');
+  $('c-spd').addEventListener('input', e => $('c-spd-v').textContent = e.target.value + 'ms');
+  $('btn-add').addEventListener('click', () => { cfg.slides.push({ title: 'Nouveau Dashboard', url: 'https://', bg: cfg.bg }); renderSList(); });
+  $('btn-save').addEventListener('click', () => {
+    collectSettings();
+    try { localStorage.setItem('dslider_v6', JSON.stringify(cfg)); } catch (e) {}
+    applyTheme(); applyBranding();
+    if (cur >= cfg.slides.length) cur = 0;
+    renderSlides(); closeSettings();
+    if (cfg.auto && !paused) startAuto();
+  });
+  setupUpload('up-logo', 'prev-logo', 'lbl-logo', 'logo');
+  setupUpload('up-app',  'prev-app',  'lbl-app',  'appLogo');
+  syncCol('c-acc', 'c-acc-t'); syncCol('c-bg', 'c-bg-t'); syncCol('c-su', 'c-su-t');
+
+  document.addEventListener('keydown', e => {
+    if ($('panel').classList.contains('open') || $('hosting-modal').style.display === 'flex') return;
+    if (e.key === 'ArrowRight') goNext();
+    else if (e.key === 'ArrowLeft') goPrev();
+    else if (e.key === ' ') { e.preventDefault(); $('btn-pause').click(); }
+  });
+  let tx = 0;
+  $('stage').addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+  $('stage').addEventListener('touchend',   e => { const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 40) dx < 0 ? goNext() : goPrev(); }, { passive: true });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
